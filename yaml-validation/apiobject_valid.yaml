@@ -1,0 +1,16 @@
+apiVersion: gcp/v1
+kind: ComputeEngine
+metadata:
+  name: webserver
+  project: default
+  zone: us-central1-a
+spec:
+  name: webserver
+  machineType: e2-micro
+  tags:
+    - foo
+    - bar
+
+  bootDisk:
+    initializeParams:
+      image: debian-cloud/debian11
