@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/go-openapi/spec"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,35 +27,80 @@ func convert(i interface{}) interface{} {
 	return i
 }
 
-func main() {
+func readSchema() (*spec.Schema, error) {
 	file, err := os.ReadFile("schema.yaml")
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 
 	var data interface{}
 
 	err = yaml.Unmarshal(file, &data)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 
 	raw, err := json.Marshal(convert(data))
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 
 	var schema spec.Schema
 
 	err = schema.UnmarshalJSON(raw)
 	if err != nil {
+		return nil, err
+	}
+
+	return &schema, nil
+}
+
+func readYaml(filename string) (interface{}, error) {
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var data interface{}
+
+	err = yaml.Unmarshal(file, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return convert(data), nil
+}
+
+func validateYaml(schema *spec.Schema, data interface{}) {
+	fmt.Println("--- validation ---")
+	err := validate.AgainstSchema(schema, data, strfmt.NewFormats())
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("validation was successful")
+	}
+}
+
+func main() {
+	schema, err := readSchema()
+	if err != nil {
+		fmt.Printf("error while reading schema: %s", err)
+		return
+	}
+
+	file, err := readYaml("wrong.yaml")
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(schema.Properties["name"].Example)
+	validateYaml(schema, file)
 
+	file, err = readYaml("correct.yaml")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	validateYaml(schema, file)
 }
